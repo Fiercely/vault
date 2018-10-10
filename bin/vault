@@ -1,0 +1,45 @@
+#!/bin/bash
+
+ROOT_DIR=`cd $(dirname $0); pwd`/..
+
+if [ -e $ROOT_DIR/src/vault.sh ]; then
+    source $ROOT_DIR/src/vault.sh
+elif [ -e ~/.vault/src/vault.sh ]; then
+    source ~/.vault/src/vault.sh
+else
+    echo 'No lib vault/src/vault.sh found' 1>&2
+    exit 2
+fi
+
+while getopts :e:k:help:c: OPT
+do
+    case $OPT in
+        k)  key=$OPTARG ;;
+        e)  exp+=("$OPTARG") ;;
+        c)  cypher=$OPTARG ;;
+        help) vault::help; exit 1 ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+command=$1
+file=$2
+outputFile=${3:-$file}
+
+if [ "$file" = "" ]  && [ "$command" != 'ciphers' ]
+then
+  echo "File was not provided"
+  exit 2
+fi
+
+empty_arr=("vault_empty_array")
+
+case $command in
+    'encrypt') vault::encrypt $file ${key:-""} ${exp:-$empty_arr} ${cypher:-aes-256-cbc} ${outputFile} ;;
+    'decrypt') vault::decrypt $file ${key:-""} ${exp:-$empty_arr} ${cypher:-aes-256-cbc} ${outputFile} ;;
+    'create') vault::create $file $key ;;
+    'generate') vault::create $file $key ;;
+    'ciphers') vault::ciphers ;;
+    *) vault::help ;;
+esac
