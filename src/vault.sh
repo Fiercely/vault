@@ -6,7 +6,7 @@ declare -a gFileOut
 
 vault::cleanUp() {
     rm /tmp/$gFile
-    rm /tmp/$gFile.bk
+    rm /tmp/$gFileOut.bk
 }
 
 vault::revertAll() {
@@ -14,15 +14,19 @@ vault::revertAll() {
 }
 
 vault::clearFileContents() {
-    file=$gFile
-    > /tmp/$file
+    > /tmp/$fileOutput.bk
 }
 
 vault::makeTmpCopy() {
     file=$gFile
     fileOutput=$gFileOut
     cp -a $file "/tmp/$file"
-    cp -a $fileOutput "/tmp/$fileOutput.bk"
+    if [ ! -f $fileOutput ]; then
+        cp -a $file "/tmp/$fileOutput.bk"
+    else
+        cp -a $fileOutput "/tmp/$fileOutput.bk"
+    fi
+
 }
 
 vault::revertToPlace() {
@@ -61,40 +65,41 @@ vault::getValueInLine() {
 }
 
 vault::encryptVarsInFile() {
-    file=$1
     password=$2
-    vars=$3
-    cipher=$4
-    cat $file | while read line
+    cipher=$3
+    fileOutput=$4
+    vars=(${@:5})
+    vault::clearFileContents
+    cat $1 | while read line
     do
         key=`vault::getKeyInLine $line`
-        value=`vault::getKeyInLine $line`
+        value=`vault::getValueInLine $line`
 
-        if vault::containsElement $key $pattern; then
+        if vault::containsElement $key ${vars[@]}; then
             value=`echo $value | openssl $cipher -A -base64 -k $password -e`
-            echo "$key=$value" >> /tmp/$outputFile.bk
+            echo "$key=$value" >> /tmp/$fileOutput.bk
         else
-            echo "$key=$value" >> /tmp/$outputFile.bk
+            echo "$key=$value" >> /tmp/$fileOutput.bk
         fi
     done
 }
 
 vault::decryptVarsInFile() {
-    file=$1
     password=$2
-    vars=$3
-    cipher=$4
-    outputFile=$5
-    cat /tmp/$file | while read line
+    cipher=$3
+    fileOutput=$4
+    vars=(${@:5})
+    vault::clearFileContents
+    cat $1 | while read line
     do
         key=`vault::getKeyInLine $line`
         value=`vault::getValueInLine $line`
 
-        if vault::containsElement $key $pattern; then
+        if vault::containsElement $key ${vars[@]}; then
             value=`echo $value | openssl $cipher -A -base64 -k $password -d`
-            echo "$key=$value" >> /tmp/$outputFile.bk
+            echo "$key=$value" >> /tmp/$fileOutput.bk
         else
-            echo "$key=$value" >> /tmp/$outputFile.bk
+            echo "$key=$value" >> /tmp/$fileOutput.bk
         fi
     done
 }
@@ -116,27 +121,14 @@ vault::decryptFile() {
     openssl $cipher -base64 -k $password -d -in /tmp/$file -out /tmp/$outputFile.bk
 }
 
-vault::create() {
-    target=$1
-    password=$2
-    cipher=${3:-aes-256-cbc}
-    if [ -z $password ]; then
-        password=`vault::getKey`
-    fi
-    key=`vault::getKeyInLine $target`
-    value=`vault::getValueInLine $target`
-    encrypted_value=`echo $value | openssl $cipher -A -base64 -k $password -e`
-    echo "$key=$encrypted_value"
-}
-
 vault::encrypt() {
     gFile=$1
     file=$1
     key=$2
-    vars=$3
-    cipher=$4
-    gFileOut=$5
-    fileOutput=$5
+    cipher=$3
+    gFileOut=$4
+    fileOutput=$4
+    vars=(${@:5})
     vault::makeTmpCopy
     if [ -z $key ]; then
         key=`vault::getKey`
@@ -150,7 +142,7 @@ vault::encrypt() {
     if [ ${#vars[@]} -eq 1 ] && [ ${vars[0]} == "vault_empty_array" ]; then
         vault::encryptFile $file $key $cipher $fileOutput
     else
-        vault::encryptVarsInFile $file $key $vars $cipher $fileOutput
+        vault::encryptVarsInFile $file $key $cipher $fileOutput ${vars[@]}
     fi
     vault::revertToPlace
     vault::cleanUp
@@ -160,10 +152,10 @@ vault::decrypt() {
     gFile=$1
     file=$1
     key=$2
-    vars=$3
-    cipher=$4
-    gFileOut=$5
-    fileOutput=$5
+    cipher=$3
+    gFileOut=$4
+    fileOutput=$4
+    vars=(${@:5})
     vault::makeTmpCopy
     if [ -z $key ]; then
         key=`vault::getKey`
@@ -176,7 +168,7 @@ vault::decrypt() {
     if [ ${#vars[@]} -eq 1 ] && [ ${vars[0]} == "vault_empty_array" ]; then
         vault::decryptFile $file $key $cipher $fileOutput
     else
-        vault::decryptVarsInFile $file $key $vars $cipher $fileOutput
+        vault::decryptVarsInFile $file $key $cipher $fileOutput ${vars[@]}
     fi
     vault::revertToPlace
     vault::cleanUp

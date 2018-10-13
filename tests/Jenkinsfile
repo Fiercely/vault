@@ -1,0 +1,48 @@
+pipeline{
+ agent any
+
+ environment {
+    VAULT = tool name: 'vault'
+    VAULT_SECRET = credentials('vault_credentials')
+}
+stages {
+    stage('Create file to encrypt')
+    {
+        steps {
+            sh "echo vault=awesome > full.txt"
+            sh "cat this.txt"
+        }
+    }
+
+    stage('Run Encrypt full file') {
+
+        steps {
+            sh "${vault} -k ${vault_secret} encrypt full.txt"
+            sh "cat this.txt"
+        }
+    }
+    stage('Run Decrypt') {
+
+        steps {
+            sh "${vault} -k ${vault_secret} decrypt full.txt"
+            sh "cat this.txt"
+        }
+    }
+
+    stage('Run Encrypt Vars only') {
+
+        steps {
+            sh "${vault} -k ${vault_secret} encrypt vars.txt"
+            sh "cat this.txt"
+        }
+    }
+
+    stage('Run Decrypt Vars only') {
+
+        steps {
+            sh "${vault} -k ${vault_secret} decrypt vars.txt"
+            sh "cat this.txt"
+        }
+
+    }
+}

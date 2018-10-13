@@ -10,7 +10,6 @@ else
     echo 'No lib vault/src/vault.sh found' 1>&2
     exit 2
 fi
-
 while getopts :e:k:help:c: OPT
 do
     case $OPT in
@@ -29,17 +28,15 @@ outputFile=${3:-$file}
 
 if [ "$file" = "" ]  && [ "$command" != 'ciphers' ]
 then
-  echo "File was not provided"
+  echo "File | Command was not provided"
   exit 2
 fi
 
 empty_arr=("vault_empty_array")
 
 case $command in
-    'encrypt') vault::encrypt $file ${key:-""} ${exp:-$empty_arr} ${cypher:-aes-256-cbc} ${outputFile} ;;
-    'decrypt') vault::decrypt $file ${key:-""} ${exp:-$empty_arr} ${cypher:-aes-256-cbc} ${outputFile} ;;
-    'create') vault::create $file $key ;;
-    'generate') vault::create $file $key ;;
+    'encrypt') vault::encrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} ${exp[@]:-$empty_arr} ;;
+    'decrypt') vault::decrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} ${exp[@]:-$empty_arr} ;;
     'ciphers') vault::ciphers ;;
     *) vault::help ;;
 esac

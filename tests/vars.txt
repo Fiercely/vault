@@ -1,0 +1,7 @@
+VAULT=SECRETS*
+MADE=BY=?
+COMPANY=FIERCELY*
+AUTHOR=ILHICAS/
+URL=https://www.fiercely.pt
+AUTHOR_URL=https://ilhicas.com
+TAG=LATEST*#!1234"56)7(9)+"'';_\|/&%$#==!=:
