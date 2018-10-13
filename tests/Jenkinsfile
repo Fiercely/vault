@@ -6,42 +6,35 @@ pipeline{
     VAULT_SECRET = credentials('vault_credentials')
 }
 stages {
-    stage('Create file to encrypt')
-    {
-        steps {
-            sh "echo vault=awesome > full.txt"
-            sh "cat this.txt"
-        }
-    }
 
     stage('Run Encrypt full file') {
 
         steps {
-            sh "${vault} -k ${vault_secret} encrypt full.txt"
-            sh "cat this.txt"
+            sh "${vault} -k ${vault_secret} encrypt full.txt full.enc.txt"
+            sh "cmp -s full.enc.txt full.expected.txt"
         }
     }
     stage('Run Decrypt') {
 
         steps {
-            sh "${vault} -k ${vault_secret} decrypt full.txt"
-            sh "cat this.txt"
+            sh "${vault} -k ${vault_secret} decrypt full.enc.txt full.dec.txt"
+            sh "cmp -s full.dec.txt full.txt"
         }
     }
 
     stage('Run Encrypt Vars only') {
 
         steps {
-            sh "${vault} -k ${vault_secret} encrypt vars.txt"
-            sh "cat this.txt"
+            sh "${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY encrypt vars.txt vars.enc.txt"
+            sh "cmp -s vars.enc.txt vars.expected.txt"
         }
     }
 
     stage('Run Decrypt Vars only') {
 
         steps {
-            sh "${vault} -k ${vault_secret} decrypt vars.txt"
-            sh "cat this.txt"
+            sh "${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY decrypt vars.enc.txt vars.dec.txt"
+            sh "cmp -s vars.dec.txt vars.expected.txt"
         }
 
     }
