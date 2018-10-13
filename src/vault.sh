@@ -104,7 +104,7 @@ vault::encryptFile() {
     password=$2
     cipher=$3
     outputFile=$4
-    openssl $cipher -A -base64 -k $password -e -in /tmp/$file -out /tmp/$outputFile.bk
+    openssl $cipher -base64 -k $password -e -in /tmp/$file -out /tmp/$outputFile.bk
 
 }
 
@@ -113,7 +113,7 @@ vault::decryptFile() {
     password=$2
     cipher=$3
     outputFile=$4
-    openssl $cipher -A -base64 -k $password -d -in /tmp/$file -out /tmp/$outputFile.bk
+    openssl $cipher -base64 -k $password -d -in /tmp/$file -out /tmp/$outputFile.bk
 }
 
 vault::create() {
