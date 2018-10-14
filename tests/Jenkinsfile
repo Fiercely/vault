@@ -3,7 +3,7 @@ pipeline{
 
  environment {
     VAULT = tool name: 'vault'
-    VAULT_SECRET = credentials('vault_credentials')
+    VAULT_SECRET = credentials('vault-credential')
 }
 stages {
 
@@ -37,5 +37,6 @@ stages {
             sh "cmp -s vars.dec.txt vars.expected.txt"
         }
 
+    }
     }
 }

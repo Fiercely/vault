@@ -1,0 +1,49 @@
+import hudson.model.*
+import jenkins.model.*
+import com.cloudbees.jenkins.plugins.customtools.CustomTool;
+import hudson.tools.InstallSourceProperty;
+import hudson.tools.ToolProperty;
+import hudson.tools.ToolPropertyDescriptor;
+import hudson.tools.CommandInstaller;
+import hudson.tools.CommandInstaller;
+import hudson.util.DescribableList;
+
+/*
+  Author: André Ilhicas dos Santos <andre.ilhicas@fiercely.pt>
+  Company: Fiercely Lda
+  Creates a new custom tool configuration in Jenkins for plugin
+*/
+def instance = Jenkins.getInstance()
+
+def customTool(Map tool)
+{
+    def isp = new InstallSourceProperty()
+    installer = new CommandInstaller(tool.label, tool.command, null)
+    def properties = new DescribableList<ToolProperty<?>, ToolPropertyDescriptor>()
+    isp.installers.add(installer)
+    properties.add(isp)
+    // CustomTool @parameters
+    // String name @Nonnull, String home @Nonnul,
+    // List properties @Nullable, String exportedPaths @Nullable,
+    // LabelSpecifics[] labelSpecifics @Nullable, ToolVersionConfig toolVersion @Nullable,
+    // String additionalVariables @Nullable
+    return new CustomTool(tool.name, tool.home, properties, null, null, null, null)
+
+}
+
+def toolDefininition = [:]
+toolDefininition.name = "vault"
+toolDefininition.home = "/var/jenkins_home/.vault/bin/vault"
+toolDefininition.folder = "/var/jenkins_home/.vault"
+toolDefininition.label = ""
+toolDefininition.command = """
+if [ ! -d "$toolDefininition.folder" ] ; then
+    git clone https://github.com/fiercely/vault  $toolDefininition.folder
+fi
+"""
+
+installations = []
+installations << customTool(toolDefininition)
+tool = instance.getDescriptor("com.cloudbees.jenkins.plugins.customtools.CustomTool")
+tool.setInstallations(*installations)
+tool.save()

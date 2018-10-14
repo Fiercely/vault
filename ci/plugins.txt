@@ -1,0 +1,4 @@
+blueocean
+pipeline-stage-view
+credentials
+custom-tools-plugin
