@@ -32,7 +32,7 @@ stages {
 
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY decrypt vars.enc.txt vars.dec.txt"
-            sh "cmp -s tests/vars.dec.txt tests/vars.expected.txt"
+            sh "cmp -s tests/vars.dec.txt tests/vars.txt"
         }
 
     }
