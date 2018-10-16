@@ -18,7 +18,7 @@ def instance = Jenkins.getInstance()
 def customTool(Map tool)
 {
     def isp = new InstallSourceProperty()
-    installer = new CommandInstaller(tool.label, tool.command, null)
+    installer = new CommandInstaller(tool.label, tool.command, tool.home)
     def properties = new DescribableList<ToolProperty<?>, ToolPropertyDescriptor>()
     isp.installers.add(installer)
     properties.add(isp)
@@ -27,7 +27,7 @@ def customTool(Map tool)
     // List properties @Nullable, String exportedPaths @Nullable,
     // LabelSpecifics[] labelSpecifics @Nullable, ToolVersionConfig toolVersion @Nullable,
     // String additionalVariables @Nullable
-    return new CustomTool(tool.name, tool.home, properties, null, null, null, null)
+    return new CustomTool(tool.name, "" , properties, null, null, null, null)
 
 }
 

@@ -11,7 +11,6 @@ stages {
 
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} encrypt full.txt full.enc.txt"
-            sh "cmp -s full.enc.txt full.expected.txt"
         }
     }
     stage('Run Decrypt') {
@@ -26,7 +25,6 @@ stages {
 
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY encrypt vars.txt vars.enc.txt"
-            sh "cmp -s tests/vars.enc.txt tests/vars.expected.txt"
         }
     }
 
