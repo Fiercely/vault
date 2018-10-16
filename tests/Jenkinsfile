@@ -11,6 +11,7 @@ stages {
 
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} encrypt full.txt full.enc.txt"
+            sh "cat tests/full.enc.txt"
         }
     }
     stage('Run Decrypt') {
@@ -18,6 +19,7 @@ stages {
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} decrypt full.enc.txt full.dec.txt"
             sh "cmp -s tests/full.dec.txt tests/full.txt"
+            sh "cat tests/full.dec.txt"
         }
     }
 
@@ -25,6 +27,7 @@ stages {
 
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY encrypt vars.txt vars.enc.txt"
+            sh "cat tests/vars.enc.txt"
         }
     }
 
@@ -33,6 +36,7 @@ stages {
         steps {
             sh "cd tests && ${vault} -k ${vault_secret} -e MADE -e AUTHOR -e URL -e COMPANY decrypt vars.enc.txt vars.dec.txt"
             sh "cmp -s tests/vars.dec.txt tests/vars.txt"
+            sh "cat tests/vars.dec.txt"
         }
 
     }
