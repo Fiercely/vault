@@ -3,6 +3,7 @@
 set -e
 declare -a gFile
 declare -a gFileOut
+declare -a gTarget
 
 vault::cleanUp() {
     rm /tmp/$gFile
@@ -57,11 +58,17 @@ vault::getKey() {
 }
 
 vault::getKeyInLine() {
-    echo $1 | sed -r 's/(.+?)=.+$/\1/'
+    echo $1 | sed -r 's/([^=]+)=.+$/\1/'
 }
 
 vault::getValueInLine() {
-    echo $1 | sed -r 's/.+?=(.+)$/\1/'
+    echo $1 | sed -r 's/[^=]+=(.+)$/\1/'
+}
+vault::getValueInLineTarget() {
+    echo $1 | sed -r 's/.+?=.*\$'"$2"'\.([^\$]+)\$.*$/\1/g'
+}
+vault::getValueFileTarget() {
+    echo $1 | sed -r '.*\$'"$gTarget"'\.([^\$]+)\$.*$/\1/g'
 }
 
 vault::encryptVarsInFile() {
@@ -77,6 +84,65 @@ vault::encryptVarsInFile() {
 
         if vault::containsElement $key ${vars[@]}; then
             value=`echo $value | openssl $cipher -A -base64 -k $password -e`
+            echo "$key=$value" >> /tmp/$fileOutput.bk
+        else
+            echo "$key=$value" >> /tmp/$fileOutput.bk
+        fi
+    done
+}
+
+vault::encryptVarsInFileTarget() {
+    password=$2
+    cipher=$3
+    fileOutput=$4
+    target=$5
+    vars=(${@:6})
+    vault::clearFileContents
+    cat $1 | while read line
+    do
+        key=`vault::getKeyInLine $line`
+        value=`vault::getValueInLine $line`
+        newValue=`vault::getValueInLineTarget $line $target`
+
+        if vault::containsElement $key ${vars[@]}; then
+            newValue=`echo $value | openssl $cipher -A -base64 -k $password -e`
+            echo "$key=\$$target.$newValue\$" >> /tmp/$fileOutput.bk
+        else
+            echo "$key=$value" >> /tmp/$fileOutput.bk
+        fi
+    done
+}
+
+vault::encryptVarsInFullFileTarget() {
+    password=$2
+    cipher=$3
+    fileOutput=$4
+    target=$5
+    vault::clearFileContents
+    cat $1 | while read line
+    do
+        key=`vault::getKeyInLine $line`
+        value=`vault::getValueInLineTarget $line`
+        value=`echo $value | openssl enc $cipher -A -base64 -k $password -e`
+        echo "$key=$value" >> /tmp/$fileOutput.bk
+
+    done
+}
+
+vault::decryptVarsInFileTarget() {
+    password=$2
+    cipher=$3
+    fileOutput=$4
+    target=$5
+    vars=(${@:6})
+    vault::clearFileContents
+    cat $1 | while read line
+    do
+        key=`vault::getKeyInLine $line`
+        value=`vault::getValueInLine $line`
+        newValue=`vault::getValueInLineTarget $line $target`
+        if vault::containsElement $key ${vars[@]}; then
+            value=`echo $newValue | openssl $cipher -A -base64 -k $password -d`
             echo "$key=$value" >> /tmp/$fileOutput.bk
         else
             echo "$key=$value" >> /tmp/$fileOutput.bk
@@ -105,20 +171,65 @@ vault::decryptVarsInFile() {
 }
 
 vault::encryptFile() {
-    file=$1
     password=$2
     cipher=$3
-    outputFile=$4
-    openssl $cipher -base64 -k $password -e -in /tmp/$file -out /tmp/$outputFile.bk
+    fileOutput=$4
+    vault::clearFileContents
+    cat $1 | while read line
+    do
+        if [[ $line = \#*  ]]; then
+            echo $line >> /tmp/$fileOutput.bk
+        else
+            key=`vault::getKeyInLine $line`
+            value=`vault::getValueInLine $line`
+            value=`echo $value | openssl $cipher -A -base64 -k $password -e`
+            echo "$key=$value" >> /tmp/$fileOutput.bk
+        fi
+    done
 
 }
 
-vault::decryptFile() {
+vault::encryptFileTarget() {
     file=$1
     password=$2
     cipher=$3
     outputFile=$4
-    openssl $cipher -base64 -k $password -d -in /tmp/$file -out /tmp/$outputFile.bk
+    if [ $file == $outputFile ]; then
+        vault::clearFileContents
+    fi
+    value=`cat $file | openssl $cipher -A -base64 -k $password -e`
+    echo $value >> /tmp/$fileOutput.bk
+}
+
+
+vault::decryptFile() {
+    password=$2
+    cipher=$3
+    fileOutput=$4
+    vault::clearFileContents
+    cat $1 | while read line
+    do
+        if [[ $line = \#*  ]]; then
+            echo $line >> /tmp/$fileOutput.bk
+        else
+            key=`vault::getKeyInLine $line`
+            value=`vault::getValueInLine $line`
+            echo $line
+            echo $value
+            value=`echo $value | openssl $cipher -A -base64 -k $password -d`
+            echo "$key=$value" >> /tmp/$fileOutput.bk
+        fi
+    done
+}
+
+vault::decryptFileTarget() {
+    file=$1
+    password=$2
+    cipher=$3
+    outputFile=$4
+    cat $1 | value=`vault::getValueFileTarget`
+    value=`echo $value | openssl $cipher -A -base64 -k $password -d`
+    echo $value > /tmp/$fileOutput.bk
 }
 
 vault::encrypt() {
@@ -128,7 +239,8 @@ vault::encrypt() {
     cipher=$3
     gFileOut=$4
     fileOutput=$4
-    vars=(${@:5})
+    target=$5
+    vars=(${@:6})
     vault::makeTmpCopy
     if [ -z $key ]; then
         key=`vault::getKey`
@@ -140,9 +252,17 @@ vault::encrypt() {
     fi
 
     if [ ${#vars[@]} -eq 1 ] && [ ${vars[0]} == "vault_empty_array" ]; then
-        vault::encryptFile $file $key $cipher $fileOutput
+        if [ $target == "empty_target" ]; then
+            vault::encryptFile $file $key $cipher $fileOutput
+        else
+            vault::encryptVarsInFullFileTarget $file $key $cipher $fileOutput
+        fi
     else
-        vault::encryptVarsInFile $file $key $cipher $fileOutput ${vars[@]}
+        if [ ${target} == "empty_target" ]; then
+            vault::encryptVarsInFile $file $key $cipher $fileOutput ${vars[@]}
+        else
+            vault::encryptVarsInFileTarget $file $key $cipher $fileOutput $target ${vars[@]}
+        fi
     fi
     vault::revertToPlace
     vault::cleanUp
@@ -151,11 +271,12 @@ vault::encrypt() {
 vault::decrypt() {
     gFile=$1
     file=$1
-    key=$2
+    password=$2
     cipher=$3
     gFileOut=$4
     fileOutput=$4
-    vars=(${@:5})
+    target=$5
+    vars=(${@:6})
     vault::makeTmpCopy
     if [ -z $key ]; then
         key=`vault::getKey`
@@ -166,9 +287,17 @@ vault::decrypt() {
         exit 2
     fi
     if [ ${#vars[@]} -eq 1 ] && [ ${vars[0]} == "vault_empty_array" ]; then
-        vault::decryptFile $file $key $cipher $fileOutput
+        if [ $target == "empty_target" ]; then
+            vault::decryptFile $file $password $cipher $fileOutput
+        else
+            vault::decryptFileTarget $file $password $cipher $fileOutput $target
+        fi
     else
-        vault::decryptVarsInFile $file $key $cipher $fileOutput ${vars[@]}
+        if [ $target == "empty_target" ]; then
+            vault::decryptVarsInFile $file $password $cipher $fileOutput ${vars[@]}
+        else
+            vault::decryptVarsInFileTarget $file $password $cipher $fileOutput $target ${vars[@]}
+        fi
     fi
     vault::revertToPlace
     vault::cleanUp

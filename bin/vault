@@ -10,12 +10,13 @@ else
     echo 'No lib vault/src/vault.sh found' 1>&2
     exit 2
 fi
-while getopts :e:k:c:h OPT
+while getopts :e:k:c:ht: OPT
 do
     case $OPT in
         k)  key=$OPTARG ;;
         e)  exp+=("$OPTARG") ;;
         c)  cypher=$OPTARG ;;
+        t)  target=$OPTARG ;;
         h) vault::help; exit 1 ;;
     esac
 done
@@ -33,10 +34,11 @@ then
 fi
 
 empty_arr=("vault_empty_array")
+target=${target:-"empty_target"}
 
 case $command in
-    'encrypt') vault::encrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} ${exp[@]:-$empty_arr} ;;
-    'decrypt') vault::decrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} ${exp[@]:-$empty_arr} ;;
+    'encrypt') vault::encrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} $target ${exp[@]:-$empty_arr} ;;
+    'decrypt') vault::decrypt $file ${key:-" "} ${cypher:-aes-256-cbc} ${outputFile} $target ${exp[@]:-$empty_arr} ;;
     'ciphers') vault::ciphers ;;
     *) vault::help ;;
 esac
