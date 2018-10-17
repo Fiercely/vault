@@ -227,6 +227,8 @@ EOF
 vault::help() {
 
 cat << EOF
+Usage:
+-------
 encrypt: vault -e [key] [optional -e [key] -e [key] ] -k [password] -c [optional: cipher (default=aes-256-cbc)] encrypt [in file] [optional: out file]
 decrypt: vault decrypt -e [key] [optional -e [key] -e [key] ] -k [password] -c [optional: cipher (default=aes-256-cbc), must match encryption] decrypt [in file] [optional: out file]
 ciphers: vault ciphers  - List all ciphers available

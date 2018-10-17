@@ -10,13 +10,13 @@ else
     echo 'No lib vault/src/vault.sh found' 1>&2
     exit 2
 fi
-while getopts :e:k:help:c: OPT
+while getopts :e:k:c:h OPT
 do
     case $OPT in
         k)  key=$OPTARG ;;
         e)  exp+=("$OPTARG") ;;
         c)  cypher=$OPTARG ;;
-        help) vault::help; exit 1 ;;
+        h) vault::help; exit 1 ;;
     esac
 done
 
